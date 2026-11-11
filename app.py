@@ -7,6 +7,9 @@ from src.components.sidebar import load_custom_css, render_sidebar
 from src.components.cards import page_header, coming_soon_card
 from src.utils.file_handler import extract_forensic_metadata
 from src.modules.image_detector import ImageForensicDetector
+from src.modules.video_detector import VideoForensicPipeline
+import plotly.express as px
+import plotly.graph_objects as go
 
 # 1. Page Configuration
 st.set_page_config(
@@ -401,41 +404,200 @@ elif current_page == "Image Analysis":
 
 elif current_page == "Video Analysis":
     page_header(
-        title="Video Deepfake & Face-Swap Forensics",
-        subtitle="Analyze temporal continuity, facial boundary warps, gaze consistency, and lip-sync synchronization.",
-        badge="PIPELINE STAGED"
+        title="Video Deepfake & Frame Screening Forensics",
+        subtitle="Frame-level neural synthetic media screening across temporal intervals on GPU tensor cores.",
+        badge="NEURAL VIDEO SCREENING ACTIVE"
     )
 
     v1, v2 = st.columns([1, 1.2])
     with v1:
-        vid_file = st.file_uploader("Upload Video File", type=["mp4", "mov", "avi"], key="vid_inspect")
+        vid_file = st.file_uploader("Upload Video File (MP4, MOV, AVI)", type=["mp4", "mov", "avi"], key="vid_inspect")
         if vid_file:
-            st.video(vid_file)
+            vid_bytes = vid_file.getvalue()
+            st.video(vid_bytes)
             meta = extract_forensic_metadata(vid_file)
             st.markdown(
                 f"""
                 <div class="cyber-card">
                     <div style="font-weight: 700; color: #22d3ee; margin-bottom: 6px;">STREAM ATTRIBUTES</div>
-                    <div style="font-size: 0.85rem; color: #94a3b8;">Size: <b>{meta['File Size']}</b></div>
-                    <div style="font-size: 0.85rem; color: #94a3b8;">SHA-256: <code style="word-break: break-all;">{meta['SHA-256 Hash']}</code></div>
+                    <div style="font-size: 0.85rem; color: #94a3b8;">Container / Filename: <b>{vid_file.name}</b></div>
+                    <div style="font-size: 0.85rem; color: #94a3b8;">Stream Size: <b>{meta['File Size']}</b></div>
+                    <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">SHA-256 Hash:</div>
+                    <code style="word-break: break-all; font-size: 0.75rem; color: #38bdf8;">{meta['SHA-256 Hash']}</code>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
         else:
-            st.info("Upload a video clip to inspect stream container headers and prepare frame sampling.")
+            st.info("Upload a video clip (max 60s, 100MB) above to inspect stream container headers and execute frame-level forensics.")
 
     with v2:
-        coming_soon_card(
-            module_name="Video Deepfake Analysis",
-            planned_pipeline=[
-                "Frame Decomposition & Face ROI Tracking: Haar/RetinaFace bounding-box alignment.",
-                "Biometric Consistency: Eye blink frequency and biological pulse (remote photoplethysmography / rPPG).",
-                "Temporal Coherence: Inter-frame optical flow disparity to expose face-swap edge seams.",
-                "Neural Spatiotemporal Models: 3D CNN / Video Transformer inference (Phase 2)."
-            ],
-            scheduled_phase="Phase 2"
-        )
+        if vid_file:
+            st.markdown("### 🔬 Live Video Forensics Screening")
+            num_sample_frames = st.slider("Sampling Frame Density", min_value=4, max_value=24, value=12, step=2, help="Number of uniformly distributed frames to extract and screen across the video timeline.")
+            run_vid_btn = st.button("🚀 Run Video Forensics Scan", type="primary", use_container_width=True)
+
+            video_state_key = f"vid_analysis_{meta['SHA-256 Hash']}_{num_sample_frames}"
+            if run_vid_btn:
+                prog_bar = st.progress(0.0)
+                status_text = st.empty()
+                status_text.info("Initializing video stream and extracting timestamped frames...")
+
+                try:
+                    pipeline = VideoForensicPipeline.get_instance()
+                    status_text.info("Running neural Swin Transformer inference on sampled frames on RTX 2050...")
+                    prog_bar.progress(0.5)
+
+                    scan_res = pipeline.inspect_and_sample_video(
+                        video_bytes=vid_bytes,
+                        filename=vid_file.name,
+                        num_frames=num_sample_frames
+                    )
+                    st.session_state[video_state_key] = scan_res
+                    prog_bar.progress(1.0)
+                    status_text.empty()
+                except Exception as ex:
+                    st.session_state[video_state_key] = {
+                        "error": f"Video analysis execution failed: {str(ex)}",
+                        "status": "ERROR_EXCEPTION"
+                    }
+                    prog_bar.empty()
+                    status_text.empty()
+
+            if video_state_key in st.session_state:
+                v_res = st.session_state[video_state_key]
+                if "error" in v_res:
+                    st.error(f"⚠️ {v_res['error']}")
+                else:
+                    v_meta = v_res.get("video_metadata", {})
+                    v_summary = v_res.get("summary", {})
+                    f_results = v_res.get("frame_results", [])
+                    total_f = v_summary.get("total_analyzed_frames", 0)
+                    syn_f = v_summary.get("synthetic_flagged_count", 0)
+                    auth_f = v_summary.get("authentic_flagged_count", 0)
+                    mean_score = v_summary.get("mean_synthetic_score", 0.0)
+                    max_score = v_summary.get("highest_synthetic_score", 0.0)
+                    peak_ts = v_summary.get("peak_timestamps", [])
+
+                    # Summary Card
+                    syn_alert = syn_f > 0
+                    card_border = "rgba(239, 68, 68, 0.4)" if syn_alert else "rgba(16, 185, 129, 0.4)"
+                    card_bg = "rgba(239, 68, 68, 0.12)" if syn_alert else "rgba(16, 185, 129, 0.12)"
+                    summary_title = f"{syn_f} / {total_f} Frames Flagged Synthetic" if syn_alert else "All Sampled Frames Predict Authentic"
+
+                    st.markdown(
+                        f"""
+                        <div class="cyber-card" style="border: 1px solid {card_border}; background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), {card_bg}); padding: 18px 22px; margin-bottom: 16px;">
+                            <div style="font-size: 0.75rem; letter-spacing: 0.1em; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">
+                                FRAME SCREENING SUMMARY (UNCALIBRATED)
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: 800; color: {'#f87171' if syn_alert else '#34d399'}; margin-bottom: 8px;">
+                                {summary_title}
+                            </div>
+                            <div style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.5;">
+                                Mean Synthetic Score: <b style="color: #f8fafc;">{mean_score}%</b> | Peak Synthetic Score: <b style="color: #f87171;">{max_score}%</b> at <code style="color: #38bdf8;">{', '.join(peak_ts) if peak_ts else 'N/A'}</code>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    # KPI Metrics Row
+                    sk1, sk2, sk3, sk4 = st.columns(4)
+                    with sk1:
+                        st.metric("Analyzed Frames", f"{total_f} frames")
+                    with sk2:
+                        st.metric("Flagged Synthetic", f"{syn_f} frames", delta="Flagged" if syn_f > 0 else "Clean", delta_color="inverse" if syn_f > 0 else "normal")
+                    with sk3:
+                        st.metric("Stream Duration", f"{v_meta.get('duration_seconds', 0.0)}s")
+                    with sk4:
+                        st.metric("Stream Resolution", f"{v_meta.get('resolution', 'N/A')}")
+
+                    # Important Limitation & Uncertainty Warning
+                    st.warning(
+                        "⚠️ **Forensic Scope & Limitation Notice:** This module performs **frame-level synthetic artifact screening** using the Swin Transformer model. "
+                        "It is **not** a dedicated face-swap, lip-sync, or temporal biometric detector. "
+                        "The mean synthetic score represents an uncalibrated average of individual frame predictions and must not be interpreted as a calibrated whole-video fake probability."
+                    )
+
+                    # Interactive Timeline Chart
+                    st.markdown("#### 📈 Frame-by-Frame Suspiciousness Timeline")
+                    df_timeline = pd.DataFrame([
+                        {
+                            "Timestamp (s)": f["reported_timestamp_sec"],
+                            "Formatted Time": f["formatted_timestamp"],
+                            "Synthetic Score (%)": f["artificial_prob"],
+                            "Authentic Score (%)": f["human_prob"],
+                            "Classification": f["classification"],
+                        }
+                        for f in f_results
+                    ])
+
+                    fig = px.line(
+                        df_timeline,
+                        x="Timestamp (s)",
+                        y="Synthetic Score (%)",
+                        markers=True,
+                        text="Formatted Time",
+                        hover_data=["Classification", "Authentic Score (%)"],
+                        labels={"Synthetic Score (%)": "Artificial Score (%)", "Timestamp (s)": "Timeline (seconds)"},
+                    )
+                    fig.add_hline(y=50, line_dash="dash", line_color="#ef4444", annotation_text="50% Synthetic Threshold", annotation_position="bottom right")
+                    fig.update_traces(
+                        line=dict(color="#38bdf8", width=3),
+                        marker=dict(size=8, color=["#ef4444" if row["Synthetic Score (%)"] >= 50 else "#10b981" for _, row in df_timeline.iterrows()])
+                    )
+                    fig.update_layout(
+                        template="plotly_dark",
+                        paper_bgcolor="rgba(15, 23, 42, 0.6)",
+                        plot_bgcolor="rgba(15, 23, 42, 0.8)",
+                        margin=dict(l=20, r=20, t=30, b=20),
+                        height=280,
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                    # Sampled Frame Thumbnails Grid
+                    st.markdown("#### 🖼️ Extracted Frame Evidence Strip")
+                    cols_per_row = 4
+                    for row_idx in range(0, len(f_results), cols_per_row):
+                        row_frames = f_results[row_idx:row_idx + cols_per_row]
+                        cols = st.columns(len(row_frames))
+                        for col, f_item in zip(cols, row_frames):
+                            with col:
+                                st.image(f_item["thumbnail"], caption=f"⏱️ {f_item['formatted_timestamp']}", use_container_width=True)
+                                f_is_syn = f_item["is_synthetic"]
+                                f_badge_color = "#f87171" if f_is_syn else "#34d399"
+                                st.markdown(
+                                    f"""
+                                    <div style="font-size: 0.75rem; text-align: center; margin-top: -6px;">
+                                        <b style="color: {f_badge_color};">{f_item['classification']}</b><br>
+                                        <span style="color: #94a3b8;">Synthetic: {f_item['artificial_prob']}%</span>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+
+                    # Telemetry footer
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.caption(
+                        f"⚙️ **Execution Telemetry:** Device: **{v_summary.get('hardware_device', 'GPU')}** | "
+                        f"Latency: **{v_summary.get('total_processing_latency_ms', 0)} ms** | "
+                        f"FPS: **{v_meta.get('fps', 'N/A')}** | "
+                        f"Total Stream Frames: **{v_meta.get('total_stream_frames', 'N/A')}** | "
+                        f"Cryptographic Hash: `{v_res.get('sha256', '')}`"
+                    )
+        else:
+            coming_soon_card(
+                module_name="Live Video Forensics Screening",
+                planned_pipeline=[
+                    "Uniform timestamp frame extraction via OpenCV (MP4, MOV, AVI support).",
+                    "Hardware accelerated frame inference using existing Swin Transformer on RTX 2050.",
+                    "Frame-by-frame suspiciousness timeline visualization.",
+                    "Evidence strip with extracted frame thumbnails and per-frame probability scores.",
+                    "ISO/IEC 27037 compliant zero-fabrication reporting."
+                ],
+                scheduled_phase="Phase 3 - Ready to Inspect"
+            )
 
 elif current_page == "Audio Analysis":
     page_header(
