@@ -31,14 +31,15 @@ def render_sidebar():
         
         menu_items = [
             ("📡 Overview Dashboard", "Overview"),
-            ("🗂️ Multimodal Upload Center", "Upload Center"),
-            ("🖼️ Image Authenticity", "Image Analysis"),
-            ("🎬 Video Deepfake Forensics", "Video Analysis"),
-            ("🎙️ Synthetic Voice Forensics", "Audio Analysis"),
-            ("📄 Document Authenticity", "Document Analysis"),
-            ("⚡ Cross-Modal Cohesion", "Cross-Modal Verification"),
-            ("🛡️ C2PA Provenance & Ledger", "Provenance Verification"),
-            ("📑 Forensic Audit Reports", "Forensic Reports"),
+            ("🔍 Multimodal Investigation", "Multimodal Investigation"),
+            ("⚡ Evidence Correlation", "Cross-Modal Verification"),
+            ("📁 Case Management", "Case Management"),
+            ("🖼️ Image Forensics", "Image Analysis"),
+            ("🎬 Video Forensics", "Video Analysis"),
+            ("🎙️ Audio Forensics", "Audio Analysis"),
+            ("📄 Document Forensics", "Document Analysis"),
+            ("📑 Forensic Reports", "Forensic Reports"),
+            ("⚙️ System Settings", "Settings"),
         ]
 
         if "current_page" not in st.session_state:

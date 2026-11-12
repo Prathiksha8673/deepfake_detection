@@ -1,0 +1,9 @@
+{
+  "investigation_id": "TEST-MANIFEST-001",
+  "report_filename": "DEEPFAKE_X_REPORT_TEST-MANIFEST-001.pdf",
+  "report_filepath": "C:\\Users\\nahme\\Downloads\\DeepfakeX\\DeepfakeX\\reports\\generated\\DEEPFAKE_X_REPORT_TEST-MANIFEST-001.pdf",
+  "sha256_hash": "91828ccb2f4eeee6c0536173599dce9f8234bb686846e3902f4eb2a4f1f949a8",
+  "file_size_bytes": 3783,
+  "generation_timestamp": "2026-11-12 02:32:30 UTC",
+  "custody_standard": "Structured Forensic Evidence Handling (Tamper-Evident SHA-256 Manifest)"
+}

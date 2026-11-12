@@ -1,0 +1,83 @@
+{
+  "investigation_id": "DFX-1794449085-384CBB",
+  "title": "Automated Phase 5 Verification Test",
+  "created_at": "2026-11-12 02:04:45 UTC",
+  "updated_at": "2026-11-12 02:04:53 UTC",
+  "investigator": "Evaluation Agent",
+  "status": "OPEN",
+  "notes": "",
+  "evidence_inventory": [
+    {
+      "filename": "real_sample.jpg",
+      "modality": "Image",
+      "sha256": "20c4fb5a46856d29e129568d2b4e26281eacf274b6444383e91d822c553cb77a",
+      "file_size": "0.48 MB"
+    },
+    {
+      "filename": "authentic_video_short.mp4",
+      "modality": "Video",
+      "sha256": "1c90590da649b20a7869b989c860c3a782638520d3d1ad31d0f909ddc9655461",
+      "file_size": "0.38 MB"
+    },
+    {
+      "filename": "real_yt_0000_part_001.flac",
+      "modality": "Audio",
+      "sha256": "a986e4cc4a3689533608307f477cdb43979784c58e1711b3db6620b96aa115e5",
+      "file_size": "0.40 MB"
+    }
+  ],
+  "individual_results": {
+    "images": [
+      {
+        "model_id": "umm-maybe/AI-image-detector",
+        "model_architecture": "SwinForImageClassification",
+        "device": "NVIDIA GeForce RTX 2050",
+        "classification": "Model predicts authentic",
+        "is_synthetic": false,
+        "confidence_pct": 59.91,
+        "artificial_prob": 40.09,
+        "human_prob": 59.91,
+        "inference_time_ms": 347.49,
+        "vram_allocated_mb": 340.06,
+        "calibration_status": "Uncalibrated Softmax Probability",
+        "status": "VERIFIED_AUTHENTIC_INFERENCE",
+        "dimensions": "2800 × 1400",
+        "filename": "real_sample.jpg"
+      }
+    ],
+    "videos": [
+      {
+        "status": "SUCCESS_VERIFIED_VIDEO_SCAN",
+        "filename": "authentic_video_short.mp4",
+        "sha256": "1c90590da649b20a7869b989c860c3a782638520d3d1ad31d0f909ddc9655461",
+        "file_size_mb": 0.38,
+        "video_metadata": {
+          "duration_seconds": 10.0,
+          "resolution": "768 × 432",
+          "fps": 12.0,
+          "total_stream_frames": 120
+        },
+        "sampling_config": {
+          "requested_frames": 4,
+          "successfully_sampled": 4
+        },
+        "summary": {
+          "total_analyzed_frames": 4,
+          "synthetic_flagged_count": 0,
+          "authentic_flagged_count": 4,
+          "mean_synthetic_score": 0.97,
+          "highest_synthetic_score": 1.16,
+          "peak_timestamps": [
+            "00:07.50"
+          ],
+          "hardware_device": "NVIDIA GeForce RTX 2050",
+          "total_processing_latency_ms": 212.09,
+          "screening_scope": "Frame-Level Latent Artifact Screening (Not temporal / face-swap biometrics)"
+        },
+        "frame_results": [
+          {
+            "frame_index": 1,
+            "target_timestamp_sec": 0.0,
+            "reported_timestamp_sec": 0.0,
+            "formatted_timestamp": "00:00.00",
+            "thumbnail": 
