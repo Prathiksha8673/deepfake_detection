@@ -31,6 +31,7 @@ def render_sidebar():
         
         menu_items = [
             ("📡 Overview Dashboard", "Overview"),
+            ("🔬 Examiner Dashboard", "Examiner Dashboard"),
             ("🔍 Multimodal Investigation", "Multimodal Investigation"),
             ("⚡ Evidence Correlation", "Cross-Modal Verification"),
             ("📁 Case Management", "Case Management"),

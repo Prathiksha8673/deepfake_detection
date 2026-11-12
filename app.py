@@ -459,6 +459,10 @@ elif current_page == "Multimodal Investigation":
                 if inv_list:
                     st.dataframe(pd.DataFrame(inv_list), use_container_width=True)
 
+elif current_page == "Examiner Dashboard":
+    from src.modules.examiner_dashboard import ExaminerDashboard
+    ExaminerDashboard.get_instance().render()
+
 elif current_page == "Case Management":
     page_header(
         title="Case Management System & Evidence Archive",

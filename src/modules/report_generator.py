@@ -210,7 +210,7 @@ class ForensicReportGenerator:
 
         # Individual Detection Summaries
         elements.append(Paragraph("3. DETECTOR INFERENCE FINDINGS (UNCALIBRATED SOFTMAX SCORES)", section_heading))
-        ind = case_data.get("individual_results", {})
+        ind = case_data.get("individual_results") or {}
         
         # Image Results
         if ind.get("images"):
@@ -245,7 +245,7 @@ class ForensicReportGenerator:
 
         # Cross-Modal Comparison Findings
         elements.append(Paragraph("4. METADATA & CONTAINER COMPARISON MATRIX", section_heading))
-        correlations = case_data.get("correlation_analysis", {}).get("correlations", [])
+        correlations = (case_data.get("correlation_analysis") or {}).get("correlations", [])
         if correlations:
             corr_table_data = [["Media Pair", "Comparison Type", "Agreement", "Key Observation"]]
             for c in correlations:
