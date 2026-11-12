@@ -256,12 +256,16 @@ elif current_page == "Multimodal Investigation":
                 h = case_mgr.store_evidence_file(b, mf.name, case_mgr.compute_sha256(b))
                 sha = case_mgr.compute_sha256(b)
                 modality = "Image" if mf in st_images else ("Video" if mf in st_videos else "Audio")
+                fsize = f"{len(b)/(1024*1024):.2f} MB"
                 inventory.append({
                     "filename": mf.name,
                     "modality": modality,
-                    "file_size": f"{len(b)/(1024*1024):.2f} MB",
+                    "file_size": fsize,
                     "sha256": sha
                 })
+                # Log EVIDENCE_INGESTED and EVIDENCE_HASHED
+                case_mgr.log_evidence_ingested(active_case, mf.name, modality, fsize, evidence_id=sha)
+                case_mgr.log_evidence_hashed(active_case, mf.name, sha, evidence_id=sha)
             active_case["evidence_inventory"] = inventory
             prog.progress(0.2)
 
@@ -272,8 +276,10 @@ elif current_page == "Multimodal Investigation":
                 pil_im = Image.open(img_f)
                 im_res = img_detector.analyze_image(pil_im)
                 im_res["filename"] = img_f.name
-                im_res["sha256"] = case_mgr.compute_sha256(img_f.getvalue())
+                im_sha = case_mgr.compute_sha256(img_f.getvalue())
+                im_res["sha256"] = im_sha
                 active_case["individual_results"]["images"].append(im_res)
+                case_mgr.log_analysis_executed(active_case, "Image", img_f.name, "Swin Transformer", evidence_id=im_sha)
             prog.progress(0.5)
 
             # 4. Sequential Execution - Videos
@@ -282,6 +288,8 @@ elif current_page == "Multimodal Investigation":
                 status_box.info(f"Screening video [{idx+1}/{len(st_videos)}]: {vid_f.name}...")
                 v_res = vid_pipeline.inspect_and_sample_video(vid_f.getvalue(), vid_f.name, num_frames=8)
                 active_case["individual_results"]["videos"].append(v_res)
+                vid_sha = case_mgr.compute_sha256(vid_f.getvalue())
+                case_mgr.log_analysis_executed(active_case, "Video", vid_f.name, "VideoForensicPipeline (OpenCV+Swin)", evidence_id=vid_sha)
             prog.progress(0.7)
 
             # 5. Sequential Execution - Audio
@@ -290,6 +298,8 @@ elif current_page == "Multimodal Investigation":
                 status_box.info(f"Evaluating audio [{idx+1}/{len(st_audios)}]: {aud_f.name}...")
                 a_res = aud_detector.process_and_analyze_audio(aud_f.getvalue(), aud_f.name)
                 active_case["individual_results"]["audios"].append(a_res)
+                aud_sha = case_mgr.compute_sha256(aud_f.getvalue())
+                case_mgr.log_analysis_executed(active_case, "Audio", aud_f.name, "Wav2Vec 2.0 Sequence Classifier", evidence_id=aud_sha)
             prog.progress(0.85)
 
             # 6. Cross-Modal Correlation & Reliability Assessment
@@ -313,6 +323,10 @@ elif current_page == "Multimodal Investigation":
             status_box.info("Building formal forensic PDF document...")
             pdf_path = pdf_gen.generate_investigation_pdf(active_case)
             active_case["report_pdf_path"] = pdf_path
+
+            # Log REPORT_GENERATED
+            pdf_sha = ForensicReportGenerator.compute_file_sha256(pdf_path)
+            case_mgr.log_report_generated(active_case, os.path.basename(pdf_path), pdf_sha)
 
             # Save Case
             case_mgr.save_case(active_case)
@@ -1146,7 +1160,7 @@ elif current_page == "Provenance Verification":
 elif current_page == "Forensic Reports":
     page_header(
         title="Forensic Audit Reports & Chain of Custody",
-        subtitle="Export comprehensive, cryptographically signed PDF forensic reports suitable for court and security operations.",
+        subtitle="Export comprehensive PDF forensic reports with detached SHA-256 integrity verification manifests.",
         badge="REPORT ENGINE READY"
     )
 
@@ -1196,10 +1210,10 @@ elif current_page == "Forensic Reports":
         coming_soon_card(
             module_name="Automated PDF Forensic Report Generation",
             planned_pipeline=[
-                "High-resolution PDF generation via ReportLab / WeasyPrint.",
+                "High-resolution PDF generation via ReportLab.",
                 "Embedded Grad-CAM visual heatmaps and spectral spectrograms.",
-                "Cryptographic HMAC signature of report contents to prevent post-export tampering.",
-                "Chain-of-custody tracking log adhering to NIST / ISO 27037 standards."
+                "PDF SHA-256 digest verification via detached cryptographic manifest.",
+                "Chain-of-custody tracking log adhering to Structured Forensic Evidence Handling."
             ],
             scheduled_phase="Phase 2"
         )

@@ -1,0 +1,83 @@
+{
+  "investigation_id": "DFX-1794455473-E90918",
+  "title": "Full Audit Lifecycle Case",
+  "created_at": "2026-11-12 03:51:13 UTC",
+  "updated_at": "2026-11-12 03:51:13 UTC",
+  "investigator": "Forensic Officer",
+  "status": "OPEN",
+  "notes": "",
+  "evidence_inventory": [],
+  "individual_results": {
+    "images": [],
+    "videos": [],
+    "audios": []
+  },
+  "correlation_analysis": null,
+  "reliability_assessment": null,
+  "audit_trail": [
+    {
+      "timestamp": "2026-11-12 03:51:13 UTC",
+      "action": "CASE_INITIALIZED",
+      "details": "Investigation DFX-1794455473-E90918 created by Forensic Officer",
+      "evidence_id": null,
+      "prev_hash": "GENESIS_ROOT_HASH",
+      "event_hash": "07a6a3de792508add05d48b70e08222e35a2c8db541de56312bd8e17cd9a17fc"
+    },
+    {
+      "timestamp": "2026-11-12 03:51:13 UTC",
+      "action": "EVIDENCE_INGESTED",
+      "details": "Evidence ingested into case custody: sample.jpg (Image, 1.2 MB)",
+      "evidence_id": "EVID-HASH-01",
+      "prev_hash": "07a6a3de792508add05d48b70e08222e35a2c8db541de56312bd8e17cd9a17fc",
+      "event_hash": "6d39593f7d07f57536a18b4153ed6a4f00931df6d440d1eda27c77d7a26217ce"
+    },
+    {
+      "timestamp": "2026-11-12 03:51:13 UTC",
+      "action": "EVIDENCE_HASHED",
+      "details": "SHA-256 digest computed for sample.jpg: EVID-HASH-01",
+      "evidence_id": "EVID-HASH-01",
+      "prev_hash": "6d39593f7d07f57536a18b4153ed6a4f00931df6d440d1eda27c77d7a26217ce",
+      "event_hash": "e9844024c31720a77e8ddd367509fe081d6b4dc869e83aafac632d4d4ad3e849"
+    },
+    {
+      "timestamp": "2026-11-12 03:51:13 UTC",
+      "action": "EVIDENCE_ACCESSED",
+      "details": "Accessed for Swin Transformer scan",
+      "evidence_id": "EVID-HASH-01",
+      "prev_hash": "e9844024c31720a77e8ddd367509fe081d6b4dc869e83aafac632d4d4ad3e849",
+      "event_hash": "6dadef1bf9a76c9c1aa855a905d965c9d878d762464c7a328db9ad5dde6856eb"
+    },
+    {
+      "timestamp": "2026-11-12 03:51:13 UTC",
+      "action": "ANALYSIS_EXECUTED",
+      "details": "Neural analysis executed on sample.jpg (Image) using Swin Transformer",
+      "evidence_id": "EVID-HASH-01",
+      "prev_hash": "6dadef1bf9a76c9c1aa855a905d965c9d878d762464c7a328db9ad5dde6856eb",
+      "event_hash": "c01e9d99a72b2acb6aef06b893ed22ab63400259ca5e01040d9692f852ba35e1"
+    },
+    {
+      "timestamp": "2026-11-12 03:51:13 UTC",
+      "action": "REPORT_GENERATED",
+      "details": "Forensic PDF report REPORT_DFX-1794455473-E90918.pdf generated (Manifest SHA-256: REPORT_HASH_999)",
+      "evidence_id": null,
+      "prev_hash": "c01e9d99a72b2acb6aef06b893ed22ab63400259ca5e01040d9692f852ba35e1",
+      "event_hash": "8cb104ec6d65b833c2bee1eff7f5eb9f1aa8b4cf0e19cbd143676c010a6faaf2"
+    },
+    {
+      "timestamp": "2026-11-12 03:51:13 UTC",
+      "action": "REPORT_EXPORTED",
+      "details": "Forensic PDF report REPORT_DFX-1794455473-E90918.pdf exported from case archive",
+      "evidence_id": null,
+      "prev_hash": "8cb104ec6d65b833c2bee1eff7f5eb9f1aa8b4cf0e19cbd143676c010a6faaf2",
+      "event_hash": "5ceb835a530b911ee1a18b2f3146936403d97af7b68ca71b10ee93e0c1bc8968"
+    },
+    {
+      "timestamp": "2026-11-12 03:51:13 UTC",
+      "action": "CASE_REOPENED",
+      "details": "Investigation DFX-1794455473-E90918 reopened for examination by Auditor Jane",
+      "evidence_id": null,
+      "prev_hash": "5ceb835a530b911ee1a18b2f3146936403d97af7b68ca71b10ee93e0c1bc8968",
+      "event_hash": "cf9fce46076f792cdfb8cbe5c95d403fe3f0bd891749b9f1a54c24ad20eae22c"
+    }
+  ]
+}

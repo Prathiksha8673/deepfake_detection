@@ -1,0 +1,27 @@
+{
+  "investigation_id": "DFX-1794456407-1666C9",
+  "title": "Tampered Chain Case",
+  "created_at": "2026-11-12 04:06:47 UTC",
+  "updated_at": "2026-11-12 04:06:47 UTC",
+  "investigator": "Investigator Lead",
+  "status": "OPEN",
+  "notes": "",
+  "evidence_inventory": [],
+  "individual_results": {
+    "images": [],
+    "videos": [],
+    "audios": []
+  },
+  "correlation_analysis": null,
+  "reliability_assessment": null,
+  "audit_trail": [
+    {
+      "timestamp": "2026-11-12 04:06:47 UTC",
+      "action": "CASE_INITIALIZED",
+      "details": "Investigation DFX-1794456407-1666C9 created by Investigator Lead",
+      "evidence_id": null,
+      "prev_hash": "GENESIS_ROOT_HASH",
+      "event_hash": "cc3f363a762ba4e1286ba4ed60754f534371cb03ab1778540acff5b87bf18de1"
+    }
+  ]
+}

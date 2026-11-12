@@ -1,0 +1,27 @@
+{
+  "investigation_id": "DFX-1794456773-B049CE",
+  "title": "Wording Verification Test",
+  "created_at": "2026-11-12 04:12:53 UTC",
+  "updated_at": "2026-11-12 04:12:53 UTC",
+  "investigator": "Forensic Auditor",
+  "status": "OPEN",
+  "notes": "",
+  "evidence_inventory": [],
+  "individual_results": {
+    "images": [],
+    "videos": [],
+    "audios": []
+  },
+  "correlation_analysis": null,
+  "reliability_assessment": null,
+  "audit_trail": [
+    {
+      "timestamp": "2026-11-12 04:12:53 UTC",
+      "action": "CASE_INITIALIZED",
+      "details": "Investigation DFX-1794456773-B049CE created by Forensic Auditor",
+      "evidence_id": null,
+      "prev_hash": "GENESIS_ROOT_HASH",
+      "event_hash": "f20eb28c9452960dccdbcd84b87f9b157d5b1ad01403995b736b61b24934d14b"
+    }
+  ]
+}

@@ -86,23 +86,40 @@ class ForensicReliabilityEngine:
             else:
                 clean_items.append(f"Audio '{fname}' predicts authentic speech ({score}% uncalibrated score)")
 
-        # 4. Check for Verified Linked Stream Anomalies ONLY
+        # 4. Check for Verified Linked Relationships & Stream Anomalies
         correlations = correlation_matrix.get("correlations", [])
         verified_sync_anomalies = [
             c for c in correlations 
             if c.get("sync_anomaly_flag", False) and c.get("relationship_type") == "LINKED_AUDIO_VIDEO_STREAM_ANALYSIS"
         ]
+        verified_linked_pairs = [
+            c for c in correlations
+            if c.get("is_source_linked", False)
+        ]
 
         # 5. Evidentiary Synthesis Logic
         # Rules:
         # A. If both flagged items AND clean items exist -> "Conflicting forensic evidence"
-        # B. If flagged >= 2 independent corroborated modalities (or verified linked stream desync with >= 1 flagged) -> "Strong evidence of manipulation detected"
-        # C. If flagged == 1 (and 0 clean items, e.g. single file evaluated or single flagged modality without counter-evidence) -> "Potential manipulation detected"
+        # B. For "Strong evidence of manipulation detected":
+        #    Must require defensible, corroborated evidence:
+        #    Either verified source-linked streams (e.g. video + its extracted audio) where both are flagged or sync anomaly detected,
+        #    OR multiple items that have explicit verified linkage.
+        #    Two unrelated/unlinked flagged files do NOT automatically produce strong manipulation (produce "Potential manipulation detected").
+        # C. If flagged == 1 (and 0 clean items) -> "Potential manipulation detected"
         # D. If flagged == 0 and clean > 0 -> "No strong evidence of manipulation detected"
+        # E. Total items == 0 -> "Insufficient evidence for assessment"
         
         has_flags = len(flagged_items) > 0
         has_cleans = len(clean_items) > 0
         has_verified_stream_anomaly = len(verified_sync_anomalies) > 0
+
+        # Check if the flagged items share verified provenance/linkage
+        flagged_with_corroborated_link = False
+        if len(flagged_items) >= 2 and len(verified_linked_pairs) > 0:
+            for pair in verified_linked_pairs:
+                if pair.get("detector_agreement") == "CONCURRING":
+                    flagged_with_corroborated_link = True
+                    break
 
         if has_flags and has_cleans:
             verdict = "Conflicting forensic evidence"
@@ -114,12 +131,22 @@ class ForensicReliabilityEngine:
                 "Because findings diverge across modalities, this cannot be classified as strong evidence of manipulation. "
                 "Localized manipulation, selective splicing, or differing detector sensitivities may be responsible; manual examination is recommended."
             )
-        elif len(flagged_items) >= 2 or (len(flagged_items) >= 1 and has_verified_stream_anomaly):
+        elif flagged_with_corroborated_link or (len(flagged_items) >= 1 and has_verified_stream_anomaly):
             verdict = "Strong evidence of manipulation detected"
-            evidence_strength = "Corroborated Multi-Source Forensic Indicators"
+            evidence_strength = "Corroborated Multi-Source Forensic Indicators with Verified Provenance"
             rationale = (
-                f"Multiple independent forensic indicators corroborate synthetic origin: {'; '.join(flagged_items)}. "
+                f"Multiple forensic indicators corroborate synthetic origin with verified evidentiary linkage: {'; '.join(flagged_items)}. "
                 + (f"In addition, verified audio-video stream desynchronization was identified in {len(verified_sync_anomalies)} linked stream(s)." if has_verified_stream_anomaly else "")
+            )
+        elif len(flagged_items) >= 2:
+            # Two or more flagged items, but WITHOUT verified source linkage / common provenance
+            verdict = "Potential manipulation detected"
+            evidence_strength = "Uncorroborated Multiple Alerts (Unverified Provenance / Independent Media)"
+            rationale = (
+                f"{len(flagged_items)} media items exhibited synthetic features ({'; '.join(flagged_items)}). "
+                "However, the files lack verified common provenance or source linkage. In the absence of proven evidentiary "
+                "relationships between the media elements, these findings represent independent alerts rather than mutually "
+                "corroborated strong evidence."
             )
         elif len(flagged_items) == 1:
             verdict = "Potential manipulation detected"

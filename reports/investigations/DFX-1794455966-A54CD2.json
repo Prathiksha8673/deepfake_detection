@@ -1,0 +1,51 @@
+{
+  "investigation_id": "DFX-1794455966-A54CD2",
+  "title": "Regression Audit Case",
+  "created_at": "2026-11-12 03:59:26 UTC",
+  "updated_at": "2026-11-12 03:59:26 UTC",
+  "investigator": "Test Lead",
+  "status": "OPEN",
+  "notes": "",
+  "evidence_inventory": [],
+  "individual_results": {
+    "images": [],
+    "videos": [],
+    "audios": []
+  },
+  "correlation_analysis": null,
+  "reliability_assessment": null,
+  "audit_trail": [
+    {
+      "timestamp": "2026-11-12 03:59:26 UTC",
+      "action": "CASE_INITIALIZED",
+      "details": "Investigation DFX-1794455966-A54CD2 created by Test Lead",
+      "evidence_id": null,
+      "prev_hash": "GENESIS_ROOT_HASH",
+      "event_hash": "d64f9e0e93b9c17ea373469e2749a50b93d3de838309edfab1475e0bf1726faf"
+    },
+    {
+      "timestamp": "2026-11-12 03:59:26 UTC",
+      "action": "EVIDENCE_ACCESSED",
+      "details": "Accessed original wav file",
+      "evidence_id": "EVID-001",
+      "prev_hash": "d64f9e0e93b9c17ea373469e2749a50b93d3de838309edfab1475e0bf1726faf",
+      "event_hash": "97672173646a270f6de2a32ed2ec385250a36bda4c62bf132284109b5a1854b0"
+    },
+    {
+      "timestamp": "2026-11-12 03:59:26 UTC",
+      "action": "CASE_REOPENED",
+      "details": "Investigation DFX-1794455966-A54CD2 reopened for examination by Auditor Bob",
+      "evidence_id": null,
+      "prev_hash": "97672173646a270f6de2a32ed2ec385250a36bda4c62bf132284109b5a1854b0",
+      "event_hash": "bf7120ab27bf8cc17e08045c0a5862c5aa5998ad262b9043bdb5f789394dad84"
+    },
+    {
+      "timestamp": "2026-11-12 03:59:26 UTC",
+      "action": "REPORT_EXPORTED",
+      "details": "Forensic PDF report DEEPFAKE_X_REPORT_DFX-1794455966-A54CD2.pdf exported from case archive",
+      "evidence_id": null,
+      "prev_hash": "bf7120ab27bf8cc17e08045c0a5862c5aa5998ad262b9043bdb5f789394dad84",
+      "event_hash": "eba1c32fc1dd51fb6587dfc544aeb6fc33284505a9ad6c11df19b3cfe94efeec"
+    }
+  ]
+}

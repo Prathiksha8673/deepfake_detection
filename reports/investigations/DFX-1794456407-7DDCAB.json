@@ -1,0 +1,27 @@
+{
+  "investigation_id": "DFX-1794456407-7DDCAB",
+  "title": "Timeline Anomaly Test",
+  "created_at": "2026-11-12 04:06:47 UTC",
+  "updated_at": "2026-11-12 04:06:47 UTC",
+  "investigator": "Forensic Officer",
+  "status": "OPEN",
+  "notes": "",
+  "evidence_inventory": [],
+  "individual_results": {
+    "images": [],
+    "videos": [],
+    "audios": []
+  },
+  "correlation_analysis": null,
+  "reliability_assessment": null,
+  "audit_trail": [
+    {
+      "timestamp": "2026-11-12 04:06:47 UTC",
+      "action": "CASE_INITIALIZED",
+      "details": "Investigation DFX-1794456407-7DDCAB created by Forensic Officer",
+      "evidence_id": null,
+      "prev_hash": "GENESIS_ROOT_HASH",
+      "event_hash": "a86979ffcff1518d474ffa6b6f1c5fd1a98ff8cb4956673588f2456d3502a9ed"
+    }
+  ]
+}

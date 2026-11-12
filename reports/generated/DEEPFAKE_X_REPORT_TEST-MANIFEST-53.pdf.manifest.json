@@ -1,0 +1,9 @@
+{
+  "investigation_id": "TEST-MANIFEST-53",
+  "report_filename": "DEEPFAKE_X_REPORT_TEST-MANIFEST-53.pdf",
+  "report_filepath": "C:\\Users\\nahme\\Downloads\\DeepfakeX\\DeepfakeX\\reports\\generated\\DEEPFAKE_X_REPORT_TEST-MANIFEST-53.pdf",
+  "sha256_hash": "fb00e086583cb4b340dac9bbc9c800ec00eda6176515e64bcda1f123a0a89371",
+  "file_size_bytes": 4142,
+  "generation_timestamp": "2026-11-12 04:07:05 UTC",
+  "custody_standard": "Structured Forensic Evidence Handling (PDF SHA-256 digest verification)"
+}

@@ -88,6 +88,8 @@ class TestPhase52Integrity(unittest.TestCase):
         Case 2: Synchronized (10s video vs 9.8s audio).
         """
         vid_res = [{
+            "evidence_id": "EVID-VID-INTERVIEW-01",
+            "sha256": "VID_SHA_INTERVIEW",
             "filename": "interview.mp4",
             "video_metadata": {"duration_seconds": 10.0},
             "summary": {"synthetic_flagged_count": 1, "total_analyzed_frames": 10, "mean_synthetic_score": 55.0, "highest_synthetic_score": 82.0}
@@ -95,7 +97,7 @@ class TestPhase52Integrity(unittest.TestCase):
         # Case 1: Linked desync
         aud_linked_desync = [{
             "filename": "interview_track0.wav",
-            "extracted_from": "interview.mp4",
+            "extracted_from": "EVID-VID-INTERVIEW-01",
             "audio_metadata": {"duration_seconds": 4.0},
             "is_synthetic": True,
             "confidence_pct": 91.0,
@@ -109,7 +111,7 @@ class TestPhase52Integrity(unittest.TestCase):
         # Case 2: Linked in-sync
         aud_linked_sync = [{
             "filename": "interview_track0.wav",
-            "extracted_from": "interview.mp4",
+            "extracted_from": "VID_SHA_INTERVIEW",
             "audio_metadata": {"duration_seconds": 9.8},
             "is_synthetic": True,
             "confidence_pct": 91.0,

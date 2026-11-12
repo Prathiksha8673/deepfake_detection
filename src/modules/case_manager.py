@@ -142,6 +142,108 @@ class CaseManager:
             logger.error(f"Failed to persist case {inv_id}: {e}")
             return False
 
+    # -------------------------------------------------------------------------
+    # Phase 6 Stage 2: Forensic Intelligence Helpers
+    # Distinguishes derived analytical results from original evidence & detections
+    # -------------------------------------------------------------------------
+    def get_forensic_explanations(self, case_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Derives or retrieves grounded forensic explanations for all media in the case.
+        Handles missing or malformed analytical data safely without modifying original evidence.
+        """
+        if not isinstance(case_data, dict):
+            return {"status": "UNAVAILABLE", "reason": "Invalid case_data provided."}
+
+        # Check if already computed in derived container
+        if "derived_intelligence" in case_data and "explanations" in case_data["derived_intelligence"]:
+            return case_data["derived_intelligence"]["explanations"]
+
+        from src.modules.forensic_explainer import ForensicExplainer
+        explainer = ForensicExplainer.get_instance()
+        ind = case_data.get("individual_results", {})
+
+        explanations = {
+            "images": [explainer.explain_image_finding(im) for im in ind.get("images", []) if isinstance(im, dict)],
+            "videos": [explainer.explain_video_finding(vd) for vd in ind.get("videos", []) if isinstance(vd, dict)],
+            "audios": [explainer.explain_audio_finding(ad) for ad in ind.get("audios", []) if isinstance(ad, dict)],
+        }
+        return explanations
+
+    def get_evidence_comparisons(self, case_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Derives or retrieves deterministic evidence comparisons, temporal video scores,
+        separated audio metrics, and verified lineage mapping.
+        Preserves strict Phase 5.3 provenance validation rules.
+        """
+        if not isinstance(case_data, dict):
+            return {"status": "UNAVAILABLE", "reason": "Invalid case_data provided."}
+
+        if "derived_intelligence" in case_data and "comparisons" in case_data["derived_intelligence"]:
+            return case_data["derived_intelligence"]["comparisons"]
+
+        from src.modules.evidence_comparator import EvidenceComparator
+        comparator = EvidenceComparator.get_instance()
+
+        inventory = case_data.get("evidence_inventory", [])
+        lineage = comparator.establish_verified_lineage(inventory)
+
+        # Video temporal score statistics across actual sampled frames
+        ind = case_data.get("individual_results", {})
+        video_temporal_stats = []
+        for vd in ind.get("videos", []):
+            if isinstance(vd, dict):
+                frames = vd.get("frame_results", [])
+                stats = comparator.analyze_video_temporal_scores(frames)
+                stats["filename"] = vd.get("filename", "video")
+                video_temporal_stats.append(stats)
+
+        # Separated audio comparisons
+        audios = ind.get("audios", [])
+        audio_comparisons = []
+        for i in range(len(audios)):
+            for j in range(i + 1, len(audios)):
+                if isinstance(audios[i], dict) and isinstance(audios[j], dict):
+                    comp = comparator.compare_audio_streams(audios[i], audios[j])
+                    comp["pair"] = f"{audios[i].get('filename')} ↔ {audios[j].get('filename')}"
+                    audio_comparisons.append(comp)
+
+        return {
+            "verified_lineage": lineage,
+            "video_temporal_statistics": video_temporal_stats,
+            "audio_comparisons": audio_comparisons,
+        }
+
+    def get_timeline_analytics(self, case_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Derives or retrieves chronological audit timeline analytics.
+        Preserves original ledger sequence, validates hash chain, and flags timestamp anomalies.
+        """
+        if not isinstance(case_data, dict):
+            return {"status": "UNAVAILABLE", "reason": "Invalid case_data provided."}
+
+        if "derived_intelligence" in case_data and "timeline" in case_data["derived_intelligence"]:
+            return case_data["derived_intelligence"]["timeline"]
+
+        from src.modules.timeline_analytics import TimelineAnalytics
+        analytics = TimelineAnalytics.get_instance()
+        return analytics.build_chronological_timeline(case_data)
+
+    def attach_derived_intelligence(self, case_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Attaches derived Phase 6 analytical intelligence into a segregated container
+        without altering original evidence inventory, raw detector findings, or audit entries.
+        """
+        if not isinstance(case_data, dict):
+            return case_data
+
+        case_data["derived_intelligence"] = {
+            "explanations": self.get_forensic_explanations(case_data),
+            "comparisons": self.get_evidence_comparisons(case_data),
+            "timeline": self.get_timeline_analytics(case_data),
+            "generated_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+        }
+        return case_data
+
     def load_case(self, investigation_id: str, record_reopen: bool = False, investigator: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Loads case and optionally appends a cryptographically verified CASE_REOPENED audit event."""
         path = self.get_case_path(investigation_id)
@@ -164,6 +266,41 @@ class CaseManager:
         except Exception as e:
             logger.error(f"Failed to load case {investigation_id}: {e}")
             return None
+
+    def log_evidence_ingested(self, case_data: Dict[str, Any], filename: str, modality: str, file_size: str, evidence_id: Optional[str] = None) -> Dict[str, Any]:
+        """Logs evidence ingestion event in the audit trail."""
+        return self.add_audit_entry(
+            case_data=case_data,
+            action="EVIDENCE_INGESTED",
+            details=f"Evidence ingested into case custody: {filename} ({modality}, {file_size})",
+            evidence_id=evidence_id or filename
+        )
+
+    def log_evidence_hashed(self, case_data: Dict[str, Any], filename: str, sha256_hash: str, evidence_id: Optional[str] = None) -> Dict[str, Any]:
+        """Logs evidence cryptographic SHA-256 fingerprinting event."""
+        return self.add_audit_entry(
+            case_data=case_data,
+            action="EVIDENCE_HASHED",
+            details=f"SHA-256 digest computed for {filename}: {sha256_hash}",
+            evidence_id=evidence_id or filename
+        )
+
+    def log_analysis_executed(self, case_data: Dict[str, Any], modality: str, filename: str, model_name: str, evidence_id: Optional[str] = None) -> Dict[str, Any]:
+        """Logs inference analysis execution event for a specific evidence item."""
+        return self.add_audit_entry(
+            case_data=case_data,
+            action="ANALYSIS_EXECUTED",
+            details=f"Neural analysis executed on {filename} ({modality}) using {model_name}",
+            evidence_id=evidence_id or filename
+        )
+
+    def log_report_generated(self, case_data: Dict[str, Any], report_filename: str, report_sha256: str) -> Dict[str, Any]:
+        """Logs report generation event with detached manifest digest."""
+        return self.add_audit_entry(
+            case_data=case_data,
+            action="REPORT_GENERATED",
+            details=f"Forensic PDF report {report_filename} generated (Manifest SHA-256: {report_sha256})"
+        )
 
     def log_report_exported(self, investigation_id: str, report_filename: str) -> bool:
         """Logs report export action in the audit trail."""

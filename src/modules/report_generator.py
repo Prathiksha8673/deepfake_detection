@@ -69,7 +69,7 @@ class ForensicReportGenerator:
             "computed_sha256": computed_hash,
             "investigation_id": manifest_data.get("investigation_id"),
             "generation_timestamp": manifest_data.get("generation_timestamp"),
-            "reason": "Cryptographic integrity verified." if is_match else "SECURITY ALERT: PDF digest mismatch with signed manifest!"
+            "reason": "PDF SHA-256 digest verification successful." if is_match else "SECURITY ALERT: PDF digest mismatch with detached manifest!"
         }
 
     def generate_investigation_pdf(self, case_data: Dict[str, Any]) -> str:
@@ -143,6 +143,9 @@ class ForensicReportGenerator:
         elements.append(Paragraph("STRUCTURED FORENSIC EVIDENCE EXAMINATION & METADATA AUDIT", subtitle_style))
         elements.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0284c7"), spaceAfter=10))
 
+        rel_assessment = case_data.get("reliability_assessment") or {}
+        overall_assessment = rel_assessment.get("verdict_category", "In Progress")
+
         # Investigation Metadata Block
         meta_table_data = [
             [
@@ -154,7 +157,7 @@ class ForensicReportGenerator:
                 Paragraph(f"<b>Investigator:</b> {case_data.get('investigator', 'Forensic Analyst')}", body_style),
             ],
             [
-                Paragraph(f"<b>Overall Assessment:</b> <b>{case_data.get('reliability_assessment', {}).get('verdict_category', 'In Progress')}</b>", body_style),
+                Paragraph(f"<b>Overall Assessment:</b> <b>{overall_assessment}</b>", body_style),
                 Paragraph(f"<b>Custody Standard:</b> Structured Forensic Evidence Handling", body_style),
             ]
         ]
@@ -171,7 +174,7 @@ class ForensicReportGenerator:
 
         # Executive Evidentiary Assessment
         elements.append(Paragraph("1. EXECUTIVE EVIDENTIARY ASSESSMENT", section_heading))
-        rel = case_data.get("reliability_assessment", {})
+        rel = case_data.get("reliability_assessment") or {}
         verdict = rel.get("verdict_category", "Pending Evaluation")
         strength = rel.get("evidence_strength", "N/A")
         rationale = rel.get("rationale", "No detailed rationale provided.")
@@ -265,8 +268,173 @@ class ForensicReportGenerator:
             elements.append(Paragraph("No cross-modal pairs evaluated.", body_style))
         elements.append(Spacer(1, 10))
 
-        # Mandatory Forensic Disclaimers & Methodology
-        elements.append(Paragraph("5. FORENSIC METHODOLOGY & EMPIRICAL DETECTOR LIMITATIONS", section_heading))
+        # =========================================================================
+        # PHASE 6 STAGE 2 ENHANCEMENTS: FORENSIC INTELLIGENCE, COMPARISONS, TIMELINE
+        # =========================================================================
+
+        # Section 5: Grounded Forensic Explainability
+        elements.append(Paragraph("5. GROUNDED FORENSIC EXPLAINABILITY & OPERATIONAL BOUNDS", section_heading))
+        from src.modules.case_manager import CaseManager
+        cm = CaseManager.get_instance()
+        explanations = cm.get_forensic_explanations(case_data)
+        has_any_exp = False
+
+        for im_exp in explanations.get("images", []):
+            if im_exp.get("status") != "UNAVAILABLE":
+                has_any_exp = True
+                u_interp = im_exp.get("output_interpretation", {})
+                scores = u_interp.get("uncalibrated_softmax_scores", {})
+                elements.append(Paragraph(
+                    f"• <b>Image '{im_exp.get('evidence_target')}':</b> "
+                    f"Architecture: {im_exp.get('pipeline_specification', {}).get('model_architecture')} | "
+                    f"Score: Synthetic {scores.get('synthetic_probability_pct')}% / Authentic {scores.get('authentic_probability_pct')}% | "
+                    f"Decision: {u_interp.get('assigned_classification')}<br/>"
+                    f"&nbsp;&nbsp;<b>Preprocessing:</b> {im_exp.get('verified_preprocessing', {}).get('tensor_normalization')}<br/>"
+                    f"&nbsp;&nbsp;<b>Raw Logits:</b> {u_interp.get('raw_logits')}<br/>"
+                    f"&nbsp;&nbsp;<b>Key Limitation:</b> {im_exp.get('uncertainty_and_invalidation_factors', ['N/A'])[0]}",
+                    body_style
+                ))
+
+        for vd_exp in explanations.get("videos", []):
+            if vd_exp.get("status") != "UNAVAILABLE":
+                has_any_exp = True
+                out_vd = vd_exp.get("output_interpretation", {})
+                samp = vd_exp.get("sampling_implementation", {})
+                elements.append(Paragraph(
+                    f"• <b>Video '{vd_exp.get('evidence_target')}':</b> "
+                    f"Sampled {samp.get('actual_frames_sampled', 0)} frames ({samp.get('sampling_strategy')}) | "
+                    f"Flagged Frames: {out_vd.get('flagged_frames_count')} | "
+                    f"Mean Synthetic: {out_vd.get('mean_synthetic_score')}% | Peak: {out_vd.get('peak_synthetic_score')}% at {', '.join(out_vd.get('peak_timestamps', []))}<br/>"
+                    f"&nbsp;&nbsp;<b>Raw Logits:</b> {out_vd.get('raw_logits')}<br/>"
+                    f"&nbsp;&nbsp;<b>Key Limitation:</b> {vd_exp.get('uncertainty_and_invalidation_factors', ['N/A'])[1]}",
+                    body_style
+                ))
+
+        for ad_exp in explanations.get("audios", []):
+            if ad_exp.get("status") != "UNAVAILABLE":
+                has_any_exp = True
+                out_ad = ad_exp.get("output_interpretation", {})
+                scores_ad = out_ad.get("uncalibrated_softmax_scores", {})
+                elements.append(Paragraph(
+                    f"• <b>Audio '{ad_exp.get('evidence_target')}':</b> "
+                    f"Architecture: {ad_exp.get('pipeline_specification', {}).get('model_architecture')} | "
+                    f"Classification: {out_ad.get('assigned_classification')} (Synthetic: {scores_ad.get('synthetic_score_pct')}%, Authentic: {scores_ad.get('authentic_score_pct')}%)<br/>"
+                    f"&nbsp;&nbsp;<b>Preprocessing:</b> Polyphase resampled to {ad_exp.get('verified_preprocessing', {}).get('target_sampling_rate_hz')} Hz mono float32<br/>"
+                    f"&nbsp;&nbsp;<b>Raw Logits:</b> {out_ad.get('raw_logits')}<br/>"
+                    f"&nbsp;&nbsp;<b>Key Limitation:</b> {ad_exp.get('uncertainty_and_invalidation_factors', ['N/A'])[0]}",
+                    body_style
+                ))
+
+        if not has_any_exp:
+            elements.append(Paragraph("No detailed explainability outputs available for this case.", body_style))
+        elements.append(Spacer(1, 10))
+
+        # Section 6: Advanced Evidence Comparison & Provenance Lineage
+        elements.append(Paragraph("6. ADVANCED EVIDENCE COMPARISON & PROVENANCE LINEAGE", section_heading))
+        comparisons = cm.get_evidence_comparisons(case_data)
+        lineage = comparisons.get("verified_lineage", {})
+        v_stats = comparisons.get("video_temporal_statistics", [])
+        a_comps = comparisons.get("audio_comparisons", [])
+
+        # 6A: Verified Lineage
+        elements.append(Paragraph("<b>A. Cryptographic Evidence Lineage (Strict Provenance):</b>", body_style))
+        if lineage.get("verified_lineages"):
+            for vl in lineage["verified_lineages"]:
+                elements.append(Paragraph(
+                    f"• <b>Child:</b> {vl.get('child_filename')} (SHA: {vl.get('child_sha256', '')[:12]}...) ➔ "
+                    f"<b>Parent:</b> {vl.get('parent_filename')} | <b>Basis:</b> {vl.get('verification_basis')}",
+                    body_style
+                ))
+        else:
+            elements.append(Paragraph("• No verified parent-child evidence lineage detected (all media items ingested independently).", body_style))
+
+        if lineage.get("unverified_associations"):
+            for ua in lineage["unverified_associations"]:
+                elements.append(Paragraph(
+                    f"• <i>Unverified Association:</i> {ua.get('child_filename')} (Ref: {ua.get('unresolved_reference')}) — {ua.get('reason')}",
+                    callout_style
+                ))
+
+        # 6B: Video Temporal Score Statistics
+        if v_stats:
+            elements.append(Spacer(1, 4))
+            elements.append(Paragraph("<b>B. Video Temporal Detector-Score Analysis:</b>", body_style))
+            for vs in v_stats:
+                sm = vs.get("score_metrics", {})
+                elements.append(Paragraph(
+                    f"• <b>{vs.get('filename')}:</b> Evaluated {vs.get('total_frames_evaluated')} frames | "
+                    f"Mean: {sm.get('mean_synthetic_score')}% | Std Dev: {sm.get('std_deviation')} pts | "
+                    f"Range: [{sm.get('minimum_synthetic_score')}% - {sm.get('maximum_synthetic_score')}%] | "
+                    f"Threshold Crossings (>50%): {vs.get('threshold_crossings_count')}<br/>"
+                    f"&nbsp;&nbsp;<i>Notice:</i> Temporal score variance does NOT prove localized splicing or video manipulation.",
+                    body_style
+                ))
+
+        # 6C: Separated Audio Comparisons
+        if a_comps:
+            elements.append(Spacer(1, 4))
+            elements.append(Paragraph("<b>C. Separated Audio Stream Comparison:</b>", body_style))
+            for ac in a_comps:
+                tech = ac.get("technical_container_metadata", {})
+                acoust = ac.get("acoustic_statistics", {})
+                elements.append(Paragraph(
+                    f"• <b>Pair {ac.get('pair')}:</b> Duration Delta: {tech.get('duration_delta_seconds')}s | "
+                    f"Sample Rate Delta: {tech.get('sample_rate_delta_hz')} Hz | "
+                    f"RMS Energy Delta: {acoust.get('rms_energy_delta')} (Ratio: {acoust.get('relative_energy_ratio')})<br/>"
+                    f"&nbsp;&nbsp;<i>Notice:</i> Container metadata and acoustic energy similarity do NOT establish common recording origin.",
+                    body_style
+                ))
+        elements.append(Spacer(1, 10))
+
+        # Section 7: Audit Timeline Analytics
+        elements.append(Paragraph("7. INVESTIGATION AUDIT TIMELINE ANALYTICS", section_heading))
+        timeline = cm.get_timeline_analytics(case_data)
+        chain_status = "VALID (Cryptographically Intact)" if timeline.get("hash_chain_valid") else "INVALID (Integrity Warning)"
+        elements.append(Paragraph(
+            f"<b>Ledger Sequence Integrity:</b> {chain_status} | "
+            f"<b>Total Events Logged:</b> {timeline.get('total_events', 0)} | "
+            f"<b>Investigation Span:</b> {timeline.get('total_investigation_span_seconds', 0.0)}s",
+            body_style
+        ))
+
+        if timeline.get("timestamp_anomalies"):
+            for an in timeline["timestamp_anomalies"]:
+                elements.append(Paragraph(
+                    f"⚠️ <b>Timestamp Anomaly:</b> Event #{an.get('sequence_index')} ({an.get('action')}) at {an.get('timestamp')}: {an.get('description')}",
+                    callout_style
+                ))
+
+        t_records = timeline.get("timeline_records", [])
+        if t_records:
+            t_table_data = [["Seq", "Action", "Timestamp (UTC)", "Details", "Event Hash (Truncated)"]]
+            for r in t_records:
+                t_table_data.append([
+                    Paragraph(str(r.get("sequence_index")), body_style),
+                    Paragraph(r.get("action", ""), body_style),
+                    Paragraph(r.get("timestamp_display", ""), body_style),
+                    Paragraph(r.get("details", "")[:60] + ("..." if len(r.get("details", "")) > 60 else ""), body_style),
+                    Paragraph(f"<font size='6'>{r.get('event_hash', '')[:16]}...</font>", body_style),
+                ])
+            t_table = Table(t_table_data, colWidths=[25, 110, 105, 200, 100])
+            t_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
+                ('TOPPADDING', (0,0), (-1,-1), 3),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ]))
+            elements.append(t_table)
+        elements.append(Paragraph(
+            "<i>Cryptographic Integrity Notice: Hash-chain verification confirms consistency against the recorded hash sequence "
+            "and detects modifications that invalidate the existing chain. It does not guarantee immutability or authenticity against "
+            "an attacker with filesystem access who can rewrite the local ledger and recompute hashes, nor does it independently "
+            "validate host clock accuracy or timestamp authenticity.</i>",
+            callout_style
+        ))
+        elements.append(Spacer(1, 10))
+
+        # Mandatory Forensic Disclaimers & Methodology (Section 8)
+        elements.append(Paragraph("8. FORENSIC METHODOLOGY & EMPIRICAL DETECTOR LIMITATIONS", section_heading))
         disclaimer_text = (
             "<b>Forensic Evidentiary Disclaimer:</b> This report is generated strictly for investigative screening. "
             "Model scores reflect raw uncalibrated softmax activations of deep neural feature extractors and do not represent absolute mathematical truth.<br/>"
@@ -292,7 +460,7 @@ class ForensicReportGenerator:
             "sha256_hash": pdf_sha256,
             "file_size_bytes": os.path.getsize(abs_pdf_path),
             "generation_timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
-            "custody_standard": "Structured Forensic Evidence Handling (Tamper-Evident SHA-256 Manifest)"
+            "custody_standard": "Structured Forensic Evidence Handling (PDF SHA-256 digest verification)"
         }
         with open(manifest_path, "w", encoding="utf-8") as mf:
             json.dump(manifest_data, mf, indent=2)

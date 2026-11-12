@@ -74,13 +74,40 @@ class EvidenceCorrelator:
             vid_name = vid.get("filename", "")
             aud_name = aud.get("filename", "")
 
-            # Verify explicit source linkage (e.g. extracted audio or matching stream base name)
-            is_linked = (
-                aud.get("extracted_from") == vid_name or
-                aud.get("is_same_stream", False) or
-                vid.get("audio_stream_source") == aud_name or
-                (os.path.splitext(vid_name)[0] == os.path.splitext(aud_name)[0] and len(vid_name) > 0)
-            )
+            vid_id = vid.get("evidence_id")
+            vid_sha = vid.get("sha256")
+            aud_id = aud.get("evidence_id")
+            aud_sha = aud.get("sha256")
+
+            # Collect valid cryptographic / identifier tokens (excluding filenames alone)
+            valid_vid_identifiers = set(filter(None, [vid_id, vid_sha]))
+            valid_aud_identifiers = set(filter(None, [aud_id, aud_sha]))
+
+            # Strict Provenance Verification Requirements:
+            # - Exact source evidence ID; or
+            # - Verified SHA-256 source hash; or
+            # - Explicit same-stream metadata with a validated source_container_id.
+            # Filenames alone can NEVER establish verified source linkage.
+            is_verified_link = False
+            is_possible_association = False
+
+            extracted_from = aud.get("extracted_from")
+            audio_source = vid.get("audio_stream_source")
+            source_container = aud.get("source_container_id")
+
+            if valid_vid_identifiers and extracted_from and extracted_from in valid_vid_identifiers:
+                is_verified_link = True
+            elif valid_aud_identifiers and audio_source and audio_source in valid_aud_identifiers:
+                is_verified_link = True
+            elif valid_vid_identifiers and aud.get("is_same_stream", False) and source_container and source_container in valid_vid_identifiers:
+                is_verified_link = True
+            elif (
+                (vid_name and aud_name and vid_name == aud_name) or
+                (os.path.splitext(vid_name)[0] == os.path.splitext(aud_name)[0] and len(vid_name) > 0) or
+                (extracted_from and extracted_from == vid_name)
+            ):
+                # Filename matches or filename stems alone remain strictly POSSIBLE_ASSOCIATION_NOT_VERIFIED
+                is_possible_association = True
 
             vid_dur = vid.get("video_metadata", {}).get("duration_seconds", 0.0)
             aud_dur = aud.get("audio_metadata", {}).get("duration_seconds", 0.0)
@@ -90,16 +117,24 @@ class EvidenceCorrelator:
             aud_syn = aud.get("is_synthetic", False)
             agreement = (vid_syn == aud_syn)
 
-            if is_linked:
-                # Synchronization delta is only forensically meaningful if audio originates from the video
+            if is_verified_link:
+                # Synchronization delta is only forensically meaningful if audio has verified provenance from video
                 sync_anomaly = dur_delta > 1.5
                 finding = (
                     f"Linked Audio/Video stream duration alignment ({aud_dur}s vs {vid_dur}s, delta: {dur_delta:.2f}s) is within normal forensic tolerance."
                     if not sync_anomaly else
-                    f"POTENTIAL STREAM DESYNC: Significant duration disparity ({dur_delta:.2f}s delta) in linked video and audio tracks."
+                    f"POTENTIAL STREAM DESYNC: Significant duration disparity ({dur_delta:.2f}s delta) in verified linked video and audio tracks."
                 )
                 rel_type = "LINKED_AUDIO_VIDEO_STREAM_ANALYSIS"
-                notes = "Audio and video have verified source linkage. Duration comparison evaluated for demux/splicing anomalies."
+                notes = "Audio and video have verified cryptographic/extraction provenance. Duration comparison evaluated for demux/splicing anomalies."
+            elif is_possible_association:
+                sync_anomaly = False
+                finding = (
+                    f"Filename stems match ('{os.path.splitext(vid_name)[0]}'), but explicit extraction provenance is unverified. "
+                    f"Video container ({vid_dur}s) and Audio file ({aud_dur}s). Classifiers {'concur' if agreement else 'diverge'}."
+                )
+                rel_type = "POSSIBLE_ASSOCIATION_NOT_VERIFIED"
+                notes = "Unverified filename association: Cannot be used for stream synchronization escalation."
             else:
                 # Standalone unlinked files
                 sync_anomaly = False
@@ -113,7 +148,8 @@ class EvidenceCorrelator:
             return {
                 "pair": f"{name_a} ↔ {name_b}",
                 "relationship_type": rel_type,
-                "is_source_linked": is_linked,
+                "is_source_linked": is_verified_link,
+                "is_possible_association": is_possible_association,
                 "duration_delta_sec": round(dur_delta, 2),
                 "sync_anomaly_flag": sync_anomaly,
                 "detector_agreement": "CONCURRING" if agreement else "DISAGREEING_FINDINGS",
